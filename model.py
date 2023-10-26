@@ -14,6 +14,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torch.utils.checkpoint import checkpoint
 
 class LayerNorm(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
@@ -85,10 +86,10 @@ class MLP(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
-        x = self.c_fc(x)
-        x = self.gelu(x)
-        x = self.c_proj(x)
-        x = self.dropout(x)
+        x = checkpoint(self.c_fc, x)
+        x = checkpoint(self.gelu, x)
+        x = checkpoint(self.c_proj, x)
+        x = checkpoint(self.dropout, x)
         return x
 
 class Block(nn.Module):
@@ -101,8 +102,9 @@ class Block(nn.Module):
         self.mlp = MLP(config)
 
     def forward(self, x):
-        x = x + self.attn(self.ln_1(x))
-        x = x + self.mlp(self.ln_2(x))
+        checkpoint(self.ln_1, x)
+        x = x + checkpoint(self.attn, checkpoint(self.ln_1, x))
+        x = x + checkpoint(self.mlp, checkpoint(self.ln_2, x))
         return x
 
 @dataclass
