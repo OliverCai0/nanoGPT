@@ -86,10 +86,10 @@ class MLP(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
-        x = checkpoint(self.c_fc, x)
-        x = checkpoint(self.gelu, x)
-        x = checkpoint(self.c_proj, x)
-        x = checkpoint(self.dropout, x)
+        x = checkpoint(self.c_fc, x, use_reentrant=False)
+        x = checkpoint(self.gelu, x, use_reentrant=False)
+        x = checkpoint(self.c_proj, x, use_reentrant=False)
+        x = checkpoint(self.dropout, x, use_reentrant=False)
         return x
 
 class Block(nn.Module):
@@ -103,8 +103,8 @@ class Block(nn.Module):
 
     def forward(self, x):
         checkpoint(self.ln_1, x)
-        x = x + checkpoint(self.attn, checkpoint(self.ln_1, x))
-        x = x + checkpoint(self.mlp, checkpoint(self.ln_2, x))
+        x = x + checkpoint(self.attn, checkpoint(self.ln_1, x, use_reentrant=False), use_reentrant=False)
+        x = x + checkpoint(self.mlp, checkpoint(self.ln_2, x, use_reentrant=False), use_reentrant=False)
         return x
 
 @dataclass
