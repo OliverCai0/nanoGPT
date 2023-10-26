@@ -32,6 +32,7 @@ from memoryLogging import display_top
 import tracemalloc
 import time
 import psutil 
+torch.jit.enable_onednn_fusion(True)
 
 tracemalloc.start()
 startTime = time.time()
